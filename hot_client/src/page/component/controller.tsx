@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button, DatePicker, TimePicker } from 'antd';
+import { Button, DatePicker, TimePicker, Input } from 'antd';
 import moment, { Moment } from 'moment';
 
 export interface ControllerProps {
@@ -9,6 +9,8 @@ export interface ControllerProps {
   onDateChange: (date: Date) => any;
   /** 默认的播放开始日期 */
   defaultDateTime: Date;
+  /** 关键词改变的回调 */
+  onKeywordChange: (keyword: string) => any;
 }
 
 const start = moment(new Date());
@@ -28,9 +30,15 @@ function disabledDate(current: moment.Moment | undefined) {
 const Controller: React.FunctionComponent<ControllerProps> = (
   props: ControllerProps
 ) => {
-  const { onDisplayStatusChange, onDateChange, defaultDateTime } = props;
+  const {
+    onDisplayStatusChange,
+    onDateChange,
+    defaultDateTime,
+    onKeywordChange
+  } = props;
   const [paused, setPaused] = useState(false);
   const [selectedDate, setSelectedDate] = useState(moment(defaultDateTime));
+  const [keyword, setKeyword] = useState('');
   const displayStatusChange = (status: boolean) => {
     /** 暂停 */
     setPaused(status);
@@ -74,6 +82,17 @@ const Controller: React.FunctionComponent<ControllerProps> = (
           setSelectedDate(selectedDate);
           onDateChange(selectedDate.toDate());
           displayStatusChange(true);
+        }}
+      />
+      &emsp;&emsp;&emsp;&emsp;
+      <span>标注：</span>
+      <Input
+        style={{ width: '120px' }}
+        placeholder="标注"
+        value={keyword}
+        onChange={e => {
+          setKeyword(e.target.value);
+          onKeywordChange(e.target.value);
         }}
       />
     </div>

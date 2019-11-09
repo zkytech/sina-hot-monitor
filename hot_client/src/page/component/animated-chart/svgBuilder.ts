@@ -2,7 +2,8 @@ import * as d3 from 'd3';
 import { ChartData, ChartDataMap, ChartOption, ChartTitle } from './index';
 import randomcolor from 'randomcolor';
 const goldenRatio = 0.0618;
-
+const arrowPath =
+  'M950.857143 512v73.142857q0 30.285714-18.571429 51.714286T884 658.285714H481.714286l167.428571 168q21.714286 20.571429 21.714286 51.428572t-21.714286 51.428571l-42.857143 43.428572q-21.142857 21.142857-51.428571 21.142857-29.714286 0-52-21.142857l-372-372.571429q-21.142857-21.142857-21.142857-51.428571 0-29.714286 21.142857-52l372-371.428572q21.714286-21.714286 52-21.714286 29.714286 0 51.428571 21.714286l42.857143 42.285714q21.714286 21.714286 21.714286 52t-21.714286 52L481.714286 438.857143h402.285714q29.714286 0 48.285714 21.428571T950.857143 512z';
 export class SVGChart {
   private container: HTMLElement;
   private svg: d3.Selection<SVGSVGElement, undefined, null, undefined>;
@@ -12,6 +13,7 @@ export class SVGChart {
   private data: ChartData[] = [];
   private dataMap: ChartDataMap = {};
   private colorMap: { [key: string]: string } = {};
+  private keyword = '';
   private scaleX: d3.ScaleLinear<number, number> = d3
     .scaleLinear()
     .domain([0, 0])
@@ -110,6 +112,7 @@ export class SVGChart {
     option.updateDuration && (this.updateDuration = option.updateDuration);
     option.margin && (this.margin = option.margin);
     option.labelWidth && (this.labelWidth = option.labelWidth);
+    typeof option.keyword !== 'undefined' && (this.keyword = option.keyword);
     Object.assign(this.info, option.info);
     Object.assign(this.title, option.title);
     this.draw();
@@ -134,7 +137,6 @@ export class SVGChart {
       .attr('text-anchor', 'middle'); // info容器
 
     this.container.appendChild(svg.node() as SVGSVGElement);
-
     return svg;
   }
 
@@ -241,7 +243,7 @@ export class SVGChart {
     // 更新网格线
     this.renderXGrid();
 
-    // 更新bar
+    // 更新节点
     const updateNode = this.nodes;
     updateNode
       .transition('update')
@@ -257,7 +259,35 @@ export class SVGChart {
         }
       }); // 更新节点位置
 
+    // 更新箭头
+    const that = this;
+    updateNode
+      .select('path.arrow')
+      .transition('update')
+      .ease(d3.easeLinear)
+      .duration(this.updateDuration) // 设置动画时长
+      .style('opacity', d => {
+        const reg = new RegExp(`(${this.keyword})`, 'g');
+        return this.keyword && reg.test(d.id) ? 1 : 0;
+      })
+      .attr('transform', function(d) {
+        const el = d3.select(this).node();
+        // @ts-ignore
+        const st = window.getComputedStyle(el);
+        // @ts-ignore
+        const originProperty = st.getPropertyValue('transform');
+        const properties = originProperty
+          .split('(')[1]
+          .split(')')[0]
+          .split(',');
+        // @ts-ignore
+        const height = this.getBoundingClientRect().height / properties[0];
+        const offset = that.scaleX(d.value) + 130;
+        return `translate(${offset},${-0.3 * that.lineHeight}) scale(${that.lineHeight / height})`;
+      });
+    // 更新bar
     const updateBar = updateNode.select('rect');
+
     updateBar
       .transition('update')
       .ease(d3.easeLinear)
@@ -293,11 +323,12 @@ export class SVGChart {
 
     const updateBarLabel = updateNode.select('text.bar_label_text');
     updateBarLabel
-      .transition()
+      .transition('update')
       .duration(this.updateDuration)
       .ease(d3.easeLinear)
       .attr('x', (d: ChartData) => this.scaleX(d.value) - 20)
-      .style('font-size', this.lineHeight * 0.9)
+      .attr('y', 0.5 * this.lineHeight)
+      .attr('font-size', this.lineHeight * 0.9)
       .style('opacity', d => (this.dataMap[d.id].rank <= 5 ? 1 : 0))
       .text(d => d.id);
   }
@@ -344,6 +375,25 @@ export class SVGChart {
       .style('font-size', this.lineHeight * (1 - goldenRatio))
       .text(d => d.value);
 
+    // 添加箭头
+    const that = this;
+    newNode
+      .append('path')
+      .attr('class', 'arrow')
+      .attr('d', arrowPath)
+      .style('opacity', d => {
+        const reg = new RegExp(`(${this.keyword})`, 'g');
+        return this.keyword && reg.test(d.id) ? 1 : 0;
+      })
+      .attr('transform', function(d) {
+        d3.select(this);
+        // @ts-ignore
+        const height = this.getBoundingClientRect().height;
+        const offset = that.scaleX(d.value) + 100;
+        return `translate(${offset},${-0.3 * that.lineHeight}) scale(${that.lineHeight / height})`;
+      })
+      .attr('fill', this.getColor);
+
     // 添加label
     newNode
       .append('text')
@@ -363,9 +413,10 @@ export class SVGChart {
       .attr('text-anchor', 'end')
       .attr('fill', '#ffffff')
       .attr('stroke', this.getColor)
+      .attr('stroke-width', 0.5)
       .attr('x', (d: ChartData) => this.scaleX(d.value) - 20)
-      .attr('y', 0.6 * this.lineHeight)
-      .style('font-size', this.lineHeight * 0.9)
+      .attr('y', 0.5 * this.lineHeight)
+      .attr('font-size', this.lineHeight * 0.9)
       .text(d => (this.dataMap[d.id].rank <= 5 ? d.id : ''));
   }
 

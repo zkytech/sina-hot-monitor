@@ -20,6 +20,7 @@ export type ChartData = { id: string; value: number }; // 原始数据
 export type ChartDataMap = { [id: string]: { value: number; rank: number } }; //根据id存储数据的map
 export type ChartOption = {
   data: ChartDataMap | ChartData[];
+  keyword?: string;
   title?: ChartTitle;
   height?: string | number;
   width?: string | number;

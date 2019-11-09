@@ -5,6 +5,7 @@ import BarChart from './animated-chart/index';
 interface SinaProps {
   paused: boolean;
   dateTime: Date;
+  keyword: string;
 }
 
 type SinaState = {
@@ -53,6 +54,7 @@ export default class Sina extends React.Component<SinaProps, SinaState> {
       title: { content: '微博热搜', color: '#E6162D' },
       updateDuration: this.duration,
       labelWidth: 300,
+      keyword: this.props.keyword,
       info: {
         content:
           currentData.length > 0
