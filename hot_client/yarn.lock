@@ -1555,6 +1555,11 @@
   resolved "http://registry.npm.taobao.org/@types/q/download/@types/q-1.5.2.tgz#690a1475b84f2a884fd07cd797c00f5f31356ea8"
   integrity sha1-aQoUdbhPKohP0HzXl8APXzE1bqg=
 
+"@types/randomcolor@^0.5.3":
+  version "0.5.3"
+  resolved "https://registry.npm.taobao.org/@types/randomcolor/download/@types/randomcolor-0.5.3.tgz#2030101c695dd1b048e82ba3d5e6d605b37b9c0c"
+  integrity sha1-IDAQHGld0bBI6Cuj1ebWBbN7nAw=
+
 "@types/react-dom@16.9.2":
   version "16.9.2"
   resolved "https://registry.npm.taobao.org/@types/react-dom/download/@types/react-dom-16.9.2.tgz#90f9e6c161850be1feb31d2f448121be2a4f3b47"
@@ -4161,14 +4166,6 @@ ecc-jsbn@~0.1.1:
   dependencies:
     jsbn "~0.1.0"
     safer-buffer "^2.1.0"
-
-echarts-for-react@^2.0.15-beta.1:
-  version "2.0.15-beta.1"
-  resolved "https://registry.npm.taobao.org/echarts-for-react/download/echarts-for-react-2.0.15-beta.1.tgz#1afa21ee0f08f9023eff0b5ab3351f2fe0f708b6"
-  integrity sha1-Gvoh7g8I+QI+/wtaszUfL+D3CLY=
-  dependencies:
-    fast-deep-equal "^2.0.1"
-    size-sensor "^0.2.0"
 
 ee-first@1.1.1:
   version "1.1.1"
@@ -8941,6 +8938,11 @@ randombytes@^2.0.0, randombytes@^2.0.1, randombytes@^2.0.5:
   dependencies:
     safe-buffer "^5.1.0"
 
+randomcolor@^0.5.4:
+  version "0.5.4"
+  resolved "https://registry.npm.taobao.org/randomcolor/download/randomcolor-0.5.4.tgz#df615b13f25b89ea58c5f8f72647f0a6f07adcc3"
+  integrity sha1-32FbE/JbiepYxfj3JkfwpvB63MM=
+
 randomfill@^1.0.3:
   version "1.0.4"
   resolved "http://registry.npm.taobao.org/randomfill/download/randomfill-1.0.4.tgz#c92196fc86ab42be983f1bf31778224931d61458"
@@ -10262,11 +10264,6 @@ sisteransi@^1.0.3:
   version "1.0.3"
   resolved "https://registry.npm.taobao.org/sisteransi/download/sisteransi-1.0.3.tgz#98168d62b79e3a5e758e27ae63c4a053d748f4eb"
   integrity sha1-mBaNYreeOl51jieuY8SgU9dI9Os=
-
-size-sensor@^0.2.0:
-  version "0.2.5"
-  resolved "https://registry.npm.taobao.org/size-sensor/download/size-sensor-0.2.5.tgz#e8ffb7cc5258893472bfda4f5734d66583247757"
-  integrity sha1-6P+3zFJYiTRyv9pPVzTWZYMkd1c=
 
 slash@^1.0.0:
   version "1.0.0"

@@ -21,7 +21,7 @@ export default class Sina extends React.Component<SinaProps, SinaState> {
   };
   interval: any; // 自动循环任务
   chartRef: any; // echart ref
-  duration: number = 500;
+  duration: number = 1000;
   /**
    * 获取新浪热搜数据
    */
@@ -47,13 +47,18 @@ export default class Sina extends React.Component<SinaProps, SinaState> {
     }
     // 获取option
     const option: ChartOption = {
-      data: currentData.map(val => ({ id: val.title, value: val.rate })),
-      title: '微博热搜',
+      data: currentData
+        .map(val => ({ id: val.title, value: val.rate }))
+        .slice(0, 30),
+      title: { content: '微博热搜', color: '#E6162D' },
       updateDuration: this.duration,
-      info:
-        currentData.length > 0
-          ? new Date(currentData[0].date_time).toLocaleString()
-          : ''
+      labelWidth: 300,
+      info: {
+        content:
+          currentData.length > 0
+            ? new Date(currentData[0].date_time).toLocaleString()
+            : ''
+      }
     };
     this.chartRef.setOption(option);
     if (current === datas.length - 15 * 50) {
@@ -70,7 +75,7 @@ export default class Sina extends React.Component<SinaProps, SinaState> {
    * 播放动画
    */
   display = () => {
-    this.interval = setInterval(this.goNext, this.duration - 10); // 为了使动画连贯，这里更新时间比动画时间短
+    this.interval = setInterval(this.goNext, this.duration - 20); // 为了使动画连贯，这里更新时间比动画时间短
   };
 
   /**
@@ -124,7 +129,7 @@ export default class Sina extends React.Component<SinaProps, SinaState> {
   }
 
   componentWillUnmount() {
-    // 取消动画
+    // 暂停动画
     this.pause();
   }
 
@@ -135,7 +140,7 @@ export default class Sina extends React.Component<SinaProps, SinaState> {
       <div style={{ height: '100%', width: '100%' }}>
         <BarChart
           ref={ref => (this.chartRef = ref)}
-          chartOption={{ data: [], title: '', updateDuration: 1000 }}
+          chartOption={{ data: [], updateDuration: this.duration }}
         ></BarChart>
       </div>
     );

@@ -6,24 +6,37 @@ export interface IBarProps {
   style?: CSSProperties;
   className?: string;
 }
+export type ChartTitle = {
+  content: string;
+  position?: {
+    x: number;
+    y: number;
+  };
+  size?: number;
+  color?: string;
+};
 
 export type ChartData = { id: string; value: number }; // 原始数据
 export type ChartDataMap = { [id: string]: { value: number; rank: number } }; //根据id存储数据的map
 export type ChartOption = {
   data: ChartDataMap | ChartData[];
-  title: string;
+  title?: ChartTitle;
   height?: string | number;
   width?: string | number;
-  updateDuration?: number;
+  updateDuration?: number; // 动画时长
   margin?: {
     top: number;
     bottom: number;
     left: number;
     right: number;
   };
-  titleSize?: number;
-  labelWidth?: number;
-  info?: string;
+  labelWidth?: number; // 标签所占空间
+  info?: {
+    content: string;
+    position?: { x: number; y: number };
+    size?: number;
+    color?: string;
+  };
 };
 
 export default class Bar extends React.Component<IBarProps> {

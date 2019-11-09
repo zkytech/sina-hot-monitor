@@ -1,34 +1,39 @@
 import * as d3 from 'd3';
-import { ChartData, ChartDataMap, ChartOption } from './index';
-
+import { ChartData, ChartDataMap, ChartOption, ChartTitle } from './index';
+import randomcolor from 'randomcolor';
 const goldenRatio = 0.0618;
 
 export class SVGChart {
   private container: HTMLElement;
   private svg: d3.Selection<SVGSVGElement, undefined, null, undefined>;
-  private appearColor = '#e67e22';
-  private commonColor = '#3498db';
   private updateDuration = 1000;
   // @ts-ignore
   private nodes: d3.Selection<d3.BaseType, ChartData, d3.BaseType, undefined>;
   private data: ChartData[] = [];
   private dataMap: ChartDataMap = {};
-
+  private colorMap: { [key: string]: string } = {};
   private scaleX: d3.ScaleLinear<number, number> = d3
     .scaleLinear()
     .domain([0, 0])
     .range([0, 0]);
-  private labelWidth: number = 200; // label占用的宽度
+  // @ts-ignore
+  private labelWidth: number = 0; // label占用的宽度
   private xAxisHeight = 20;
-  private margin = { left: 10, right: 10, top: 10, bottom: 10 };
-  //@ts-ignore
-  private titleSize: number;
+  private margin = { left: 10, right: 200, top: 20, bottom: 10 };
   // @ts-ignore
   private originData: ChartData[] | ChartDataMap;
   // @ts-ignore
-  private title: string;
+  private info: Required<ChartTitle> = {
+    content: '',
+    color: '#0984e3',
+    size: 70
+  };
   // @ts-ignore
-  private info: string;
+  private title: Required<ChartTitle> = {
+    content: '',
+    color: '#636e72',
+    size: 30
+  };
 
   get lineHeight(): number {
     return (
@@ -40,7 +45,7 @@ export class SVGChart {
   }
 
   get titleHeight(): number {
-    return this.titleSize ? this.titleSize + 10 : 30;
+    return this.title.size + this.margin.top;
   }
 
   get chartOffsetLeft(): number {
@@ -58,10 +63,42 @@ export class SVGChart {
   get chartOffsetBottom(): number {
     return this.margin.bottom + this.xAxisHeight;
   }
-
   constructor(container: HTMLElement) {
     this.container = container;
+    this.info.position = {
+      x: this.container.offsetWidth - 300,
+      y: this.container.offsetHeight - 100
+    };
+    this.title.position = {
+      x: this.container.offsetWidth / 2,
+      y: this.titleHeight
+    };
     this.svg = this.buildSVG();
+  }
+
+  private renderXGrid() {
+    this.svg
+      .selectAll('g.xAxis g.tick')
+      .select('line.grid-line')
+      .remove();
+    const lines = d3
+      .selectAll('g.xAxis g.tick')
+      .append('line')
+      .classed('grid-line', true);
+    lines
+      .attr('x1', 0)
+      .attr('y1', 0)
+      .attr('x2', 0)
+      .attr(
+        'y2',
+        -(
+          this.container.offsetHeight -
+          this.chartOffsetBottom -
+          this.chartOffsetTop
+        )
+      )
+      .attr('stroke', 'black')
+      .attr('stroke-opacity', 0.2);
   }
 
   /**
@@ -70,12 +107,11 @@ export class SVGChart {
    */
   public setOption(option: ChartOption) {
     this.originData = option.data;
-    this.title = option.title;
     option.updateDuration && (this.updateDuration = option.updateDuration);
     option.margin && (this.margin = option.margin);
-    option.titleSize && (this.titleSize = option.titleSize);
     option.labelWidth && (this.labelWidth = option.labelWidth);
-    option.info && (this.info = option.info);
+    Object.assign(this.info, option.info);
+    Object.assign(this.title, option.title);
     this.draw();
   }
 
@@ -84,23 +120,18 @@ export class SVGChart {
       .create('svg')
       .attr('height', this.container.offsetHeight)
       .attr('width', this.container.offsetWidth);
-    svg
-      .append('g')
-      .attr('class', 'chart')
-      .attr('transform', `translate(${this.labelWidth},0)`); // bar 容器
+    svg.append('g').attr('class', 'chart');
+    svg.append('g').attr('class', 'xAxis');
+    // .style('width', this.container.offsetWidth - this.labelWidth)
 
     svg
-      .append('g')
-      .attr('class', 'xAxis')
-      // .style('width', this.container.offsetWidth - this.labelWidth)
-      .attr(
-        'transform',
-        `translate(${this.labelWidth},${this.container.offsetHeight -
-          this.chartOffsetBottom})`
-      ); // x轴容器
-
-    svg.append('text').attr('class', 'title'); // 标题容器
-    svg.append('text').attr('class', 'info'); // info容器
+      .append('text')
+      .attr('class', 'title')
+      .attr('text-anchor', 'right'); // 标题容器
+    svg
+      .append('text')
+      .attr('class', 'info')
+      .attr('text-anchor', 'middle'); // info容器
 
     this.container.appendChild(svg.node() as SVGSVGElement);
 
@@ -132,10 +163,7 @@ export class SVGChart {
     // 为了实现动态x轴长度，所以不使用固定的this.scaleX
     this.scaleX = d3
       .scaleLinear()
-      .domain([
-        0,
-        1.1 * (d3.max(this.data, (d: ChartData) => d.value) as number)
-      ])
+      .domain([0, d3.max(this.data, (d: ChartData) => d.value) as number])
       .range([
         0,
         this.container.offsetWidth -
@@ -162,43 +190,62 @@ export class SVGChart {
    * 更新bar&坐标轴
    */
   private update() {
+    // 更新svg宽高
+    this.svg
+      .attr('height', this.container.offsetHeight)
+      .attr('width', this.container.offsetWidth);
+    // 更新chart容器
+    this.svg
+      .select('g.chart')
+      .attr('transform', `translate(${this.chartOffsetLeft},0)`);
     // 更新title
     this.svg
       .select('text.title')
-      .attr('text-anchor', 'middle')
-      .attr('x', this.container.offsetWidth / 2)
+      .attr('text-anchor', 'start')
+      .attr('x', this.chartOffsetLeft)
       .attr('y', this.titleHeight)
       .style('font-size', this.titleHeight)
-      .text(this.title);
+      .attr('stroke', this.title.color)
+      .attr('stroke-width', 2)
+      .attr('fill', this.title.color)
+      .text(this.title.content);
 
     // 更新info
     this.svg
       .select('text.info')
-      .attr('text-anchor', 'middle')
       .attr('x', this.container.offsetWidth - 500)
       .attr('y', this.container.offsetHeight - 100)
-      .style('font-size', 50)
-      .text(this.info);
+      .style('font-size', this.info.size)
+      .attr('stroke', this.info.color)
+      .attr('stroke-width', 3)
+      .attr('fill', this.info.color)
+      .text(this.info.content);
 
     // 更新坐标轴
     const xAxis = d3.axisBottom(this.scaleX).ticks(5);
     this.svg
       .select('g.xAxis')
-
+      .style('font-size', 0.5 * this.lineHeight)
       .transition()
+      .duration(this.updateDuration)
+      .ease(d3.easeLinear)
       .attr(
         'transform',
-        `translate(${this.labelWidth},${this.container.offsetHeight -
+        `translate(${this.chartOffsetLeft},${this.container.offsetHeight -
           this.xAxisHeight -
           this.margin.bottom})`
-      ) // TODO:自定义坐标轴文字
+      )
+
       // @ts-ignore
       .call(xAxis);
+    // 更新网格线
+    this.renderXGrid();
 
     // 更新bar
     const updateNode = this.nodes;
     updateNode
       .transition('update')
+      .ease(d3.easeLinear)
       .duration(this.updateDuration) // 设置动画时长
       .attr('transform', (d: ChartData) => {
         const target = this.dataMap[d.id];
@@ -213,8 +260,9 @@ export class SVGChart {
     const updateBar = updateNode.select('rect');
     updateBar
       .transition('update')
+      .ease(d3.easeLinear)
       .duration(this.updateDuration)
-      .style('fill', this.commonColor) // 设置颜色
+      .style('fill', this.getColor) // 设置颜色
       .attr('width', (d: ChartData) => this.scaleX(d.value)) // 更新bar宽度
       .attr('height', this.lineHeight * 0.8); // 更新bar高度
 
@@ -222,25 +270,36 @@ export class SVGChart {
     const updateValText = updateNode.select('.value_text');
     updateValText
       .style('font-size', this.lineHeight * (1 - goldenRatio))
-
       .transition('update')
-      .duration(this.updateDuration * 1.1)
-      .attr('text-anchor', 'end')
+      .ease(d3.easeLinear)
+      .duration(this.updateDuration)
       .attr('x', (d: ChartData) => this.scaleX(d.value) + 20)
-      .attr('y', 0.6 * this.lineHeight)
+      .attr('y', 0.5 * this.lineHeight)
       .tween('text', function(d) {
         const self = this as any;
+        const i = d3.interpolate(self.textContent, Number(d.value));
         // @ts-ignore
-        const i = d3.interpolateNumber(this.textContent as number, d.value);
-        return t => (self.textContent = Math.floor(i(t))); // 动画期间执行返回的这个函数，t的值代表动画执行的百分比
+        return function(t) {
+          self.textContent = Math.round(i(t));
+        };
       });
 
     // 更新节点label
-    const updateLabel = updateNode.select('.label_text');
+    const updateLabel = updateNode.select('text.label_text');
     updateLabel
       .text(d => d.id)
-      .attr('y', 0.6 * this.lineHeight)
-      .style('font-size', this.lineHeight * (1 - goldenRatio));
+      .attr('y', 0.5 * this.lineHeight)
+      .style('font-size', this.lineHeight * 0.5);
+
+    const updateBarLabel = updateNode.select('text.bar_label_text');
+    updateBarLabel
+      .transition()
+      .duration(this.updateDuration)
+      .ease(d3.easeLinear)
+      .attr('x', (d: ChartData) => this.scaleX(d.value) - 20)
+      .style('font-size', this.lineHeight * 0.9)
+      .style('opacity', d => (this.dataMap[d.id].rank <= 5 ? 1 : 0))
+      .text(d => d.id);
   }
 
   /**
@@ -261,7 +320,7 @@ export class SVGChart {
     // 构建bar
     newNode
       .append('rect')
-      .style('fill', this.appearColor) // bar颜色
+      .style('fill', this.getColor) // bar颜色
       .attr('fill-opacity', 0)
       .attr('height', this.lineHeight * 0.8) // bar高度
       .attr('width', d => {
@@ -275,9 +334,13 @@ export class SVGChart {
     newNode
       .append('text')
       .attr('class', 'value_text')
-      .attr('text-anchor', 'end')
+      .attr('stroke', this.getColor)
+      .attr('stroke-size', '2px')
+      .attr('fill', this.getColor)
+      .attr('text-anchor', 'left') // 文本水平对齐方式
+      .attr('dominant-baseline', 'middle') // 文本垂直对齐方式
       .attr('x', (d: ChartData) => this.scaleX(d.value) + 20)
-      .attr('y', 0.6 * this.lineHeight)
+      .attr('y', 0.5 * this.lineHeight)
       .style('font-size', this.lineHeight * (1 - goldenRatio))
       .text(d => d.value);
 
@@ -285,10 +348,25 @@ export class SVGChart {
     newNode
       .append('text')
       .attr('class', 'label_text')
-      .attr('x', -this.labelWidth + this.margin.left)
-      .attr('y', 0.6 * this.lineHeight)
-      .style('font-size', this.lineHeight * (1 - goldenRatio))
+      .attr('text-anchor', 'end')
+      .attr('dominant-baseline', 'middle') // 文本垂直对齐方式
+      .attr('fill', this.getColor)
+      .attr('x', -this.margin.left)
+      .attr('y', 0.5 * this.lineHeight)
+      .style('font-size', this.lineHeight * 0.5)
       .text(d => d.id);
+
+    // 添加位于bar上的label
+    newNode
+      .append('text')
+      .attr('class', 'bar_label_text')
+      .attr('text-anchor', 'end')
+      .attr('fill', '#ffffff')
+      .attr('stroke', this.getColor)
+      .attr('x', (d: ChartData) => this.scaleX(d.value) - 20)
+      .attr('y', 0.6 * this.lineHeight)
+      .style('font-size', this.lineHeight * 0.9)
+      .text(d => (this.dataMap[d.id].rank <= 5 ? d.id : ''));
   }
 
   /**
@@ -307,4 +385,14 @@ export class SVGChart {
       .attr('transform', `translate(0 ,${this.container.offsetHeight})`) // 移动到最底端
       .remove(); // 从dom中删除
   }
+
+  private getColor = (d: ChartData) => {
+    if (this.colorMap[d.id]) {
+      return this.colorMap[d.id];
+    } else {
+      const color = randomcolor({ luminosity: 'dark' });
+      this.colorMap[d.id] = color;
+      return color;
+    }
+  };
 }
