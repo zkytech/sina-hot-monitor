@@ -1,21 +1,21 @@
 import React, { CSSProperties } from 'react';
 import { SVGChart } from './svgBuilder';
-
+import ReactLoading from 'react-loading';
 export interface IBarProps {
   chartOption: ChartOption;
   style?: CSSProperties;
   className?: string;
+  loading?: boolean;
+  height?: string | number;
+  width?: string | number;
 }
 export type ChartTitle = {
   content: string;
-  position?: {
-    x: number;
-    y: number;
-  };
+  position?: Vector2D;
   size?: number;
   color?: string;
 };
-
+export type Vector2D = { x: number; y: number };
 export type ChartData = { id: string; value: number }; // 原始数据
 export type ChartDataMap = { [id: string]: { value: number; rank: number } }; //根据id存储数据的map
 export type ChartOption = {
@@ -32,12 +32,7 @@ export type ChartOption = {
     right: number;
   };
   labelWidth?: number; // 标签所占空间
-  info?: {
-    content: string;
-    position?: { x: number; y: number };
-    size?: number;
-    color?: string;
-  };
+  info?: ChartTitle;
 };
 
 export default class Bar extends React.Component<IBarProps> {
@@ -55,21 +50,66 @@ export default class Bar extends React.Component<IBarProps> {
     this.svgChart = new SVGChart(this.container);
     this.svgChart.setOption(chartOption);
   }
+  componentWillReceiveProps(nextProps: IBarProps) {}
+
+  loadingMask() {
+    const { height, width, loading } = this.props;
+    return (
+      <div
+        style={{
+          height: height ? height : '100%',
+          width: width ? width : '100%',
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          backgroundColor: '#ffffff',
+          opacity: 0.9,
+          zIndex: 2
+        }}
+      >
+        <div
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%,-50%)',
+            textAlign: 'center',
+            zIndex: 3
+          }}
+        >
+          <ReactLoading type={'spin'} height={50} width={50} color={'#000'} />
+          Loading...
+        </div>
+      </div>
+    );
+  }
 
   public render() {
-    const { chartOption, style, className } = this.props;
-    const { height, width } = chartOption;
+    const { style, className, height, width, loading } = this.props;
 
     return (
       <div
-        ref={(ref: HTMLDivElement) => (this.container = ref)}
         style={{
           ...style,
-          height: height ? height : '90vh',
+          height: height ? height : '100%',
           width: width ? width : '100%'
         }}
         className={className ? className : undefined}
-      ></div>
+      >
+        <div
+          style={{
+            position: 'relative',
+            height: '100%',
+            width: '100%'
+          }}
+        >
+          <div
+            ref={(ref: HTMLDivElement) => (this.container = ref)}
+            style={{ height: '100%', width: '100%' }}
+          ></div>
+          {loading ? this.loadingMask() : ''}
+        </div>
+      </div>
     );
   }
 }

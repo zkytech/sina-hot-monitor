@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Controller from './component/controller';
-import Sina from './component/sina';
+import HotChart from './component/hotChart';
 
 interface HomeProps {}
 
@@ -11,14 +11,22 @@ const Home: React.FunctionComponent<HomeProps> = (props: HomeProps) => {
   const [paused, setPaused] = useState(false);
   const [dateTime, setDateTime] = useState(defaultDate);
   const [keyword, setKeyword] = useState('');
+  const [dataSource, setDataSource] = useState<DataSource>('sina');
   return (
     <div>
-      <Sina paused={paused} dateTime={dateTime} keyword={keyword} />
       <Controller
         onKeywordChange={setKeyword}
         onDateChange={(date: Date) => setDateTime(date)}
         onDisplayStatusChange={(paused: boolean) => setPaused(paused)}
         defaultDateTime={defaultDate}
+        defaultDataSource={dataSource}
+        onDataSourceChange={ds => setDataSource(ds)}
+      />
+      <HotChart
+        paused={paused}
+        dateTime={dateTime}
+        keyword={keyword}
+        dataSource={dataSource}
       />
     </div>
   );

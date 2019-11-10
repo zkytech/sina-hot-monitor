@@ -1,21 +1,43 @@
 import React from 'react';
-import { getSinaData } from '../../api/sina';
 import { ChartOption } from './animated-chart/index';
 import BarChart from './animated-chart/index';
-interface SinaProps {
+import { getSinaData, getZhihuData, getBilibiliData } from '../../api/data';
+
+import moment from 'moment';
+
+interface HotChartProps {
   paused: boolean;
   dateTime: Date;
   keyword: string;
+  dataSource: DataSource;
 }
-
-type SinaState = {
-  datas: SinaHot[]; // 新浪热搜数据
+function getHotData(
+  startDate: number,
+  endDate: number,
+  dataSource: DataSource
+) {
+  switch (dataSource) {
+    case 'sina':
+      return getSinaData(startDate, endDate);
+    case 'zhihu':
+      return getZhihuData(startDate, endDate);
+    case 'bilibili':
+      return getBilibiliData(startDate, endDate);
+    default:
+      return getSinaData(startDate, endDate);
+  }
+}
+type HotChartState = {
+  datas: HotData[]; // 新浪热搜数据
   current: number; // 当前帧对应数据的起点
   loading: boolean; // echarts loading状态控制
 };
 
-export default class Sina extends React.Component<SinaProps, SinaState> {
-  readonly state: SinaState = {
+export default class HotChart extends React.Component<
+  HotChartProps,
+  HotChartState
+> {
+  readonly state: HotChartState = {
     datas: [],
     current: 0,
     loading: true
@@ -23,17 +45,53 @@ export default class Sina extends React.Component<SinaProps, SinaState> {
   interval: any; // 自动循环任务
   chartRef: any; // echart ref
   duration: number = 1000;
-  /**
-   * 获取新浪热搜数据
-   */
-  getData = (start_date: number, end_date: number) =>
-    getSinaData(start_date, end_date).then(res => {
-      this.setState({
-        datas: this.state.datas.concat(res.data)
-      });
-      return res;
-    });
+  requesting = false;
 
+  /** 每次获取数据的时间跨度 */
+  getSpan(dataSource?: DataSource): number {
+    switch (dataSource ? dataSource : this.props.dataSource) {
+      case 'sina':
+        return 3600000; // 一个小时
+      case 'zhihu':
+        return 3600000; // 一个小时
+      case 'bilibili':
+        return 2592000000; // 30天
+      default:
+        return 0;
+    }
+  }
+  /**
+   * 获取热搜数据
+   */
+  getData = (start_date: number, end_date: number, dataSource?: DataSource) =>
+    getHotData(
+      start_date,
+      end_date,
+      dataSource ? dataSource : this.props.dataSource
+    )
+      .then(res => {
+        this.setState({
+          datas: this.state.datas.concat(res.data)
+        });
+        return res;
+      })
+      .finally(() => {
+        // 即使失败了也能够继续发送请求
+        this.requesting = false;
+      });
+
+  get title(): { content: string; color: string } {
+    switch (this.props.dataSource) {
+      case 'sina':
+        return { content: '微博热搜', color: '#E6162D' };
+      case 'zhihu':
+        return { content: '知乎热榜', color: '#0084FF' };
+      case 'bilibili':
+        return { content: 'Bilibili热榜', color: '#00A1D6' };
+      default:
+        return { content: '', color: '#000' };
+    }
+  }
   /**
    * 渲染动画帧
    */
@@ -51,22 +109,22 @@ export default class Sina extends React.Component<SinaProps, SinaState> {
       data: currentData
         .map(val => ({ id: val.title, value: val.rate }))
         .slice(0, 30),
-      title: { content: '微博热搜', color: '#E6162D' },
+      title: this.title,
       updateDuration: this.duration,
-      labelWidth: 300,
       keyword: this.props.keyword,
       info: {
         content:
           currentData.length > 0
-            ? new Date(currentData[0].date_time).toLocaleString()
+            ? moment(currentData[0].date_time).format('YYYY年MM月DD日 HH:mm')
             : ''
       }
     };
     this.chartRef.setOption(option);
-    if (current === datas.length - 15 * 50) {
+    if (current >= datas.length - 15 * 50 && !this.requesting) {
+      this.requesting = true;
       // 如果当前播放接近尾部，获取后面的数据
       const start_date = datas[datas.length - 1].date_time + 60000;
-      const end_date = start_date + 1800000;
+      const end_date = start_date + this.getSpan();
       this.getData(start_date, end_date);
     }
     current += 50;
@@ -87,11 +145,14 @@ export default class Sina extends React.Component<SinaProps, SinaState> {
     clearInterval(this.interval);
   };
 
-  componentWillReceiveProps(nextProps: SinaProps) {
+  componentWillReceiveProps(nextProps: HotChartProps) {
     if (
       nextProps.dateTime.toLocaleString() !==
-      this.props.dateTime.toLocaleString()
+        this.props.dateTime.toLocaleString() ||
+      nextProps.dataSource !== this.props.dataSource
     ) {
+      // 先暂停动画
+      this.pause();
       // 时间改变，清空数据，显示加载动画
       this.setState({
         datas: [],
@@ -100,14 +161,14 @@ export default class Sina extends React.Component<SinaProps, SinaState> {
       });
       // 获取新的数据
       const startDate = nextProps.dateTime.getTime();
-      const endDate = startDate + 1800000;
-      this.getData(startDate, endDate).then(res => {
+      const endDate = startDate + this.getSpan(nextProps.dataSource);
+      this.getData(startDate, endDate, nextProps.dataSource).then(res => {
         // 关闭加载动画
         this.setState({ loading: false });
         if (!res.data.length) return;
 
-        // 渲染当前帧
-        this.goNext();
+        // 开始动画
+        this.display();
       });
     }
     if (nextProps.paused !== this.props.paused) {
@@ -122,7 +183,7 @@ export default class Sina extends React.Component<SinaProps, SinaState> {
 
   componentDidMount() {
     const start_date = new Date().getTime() - 86400000;
-    const end_date = start_date + 1800000;
+    const end_date = start_date + this.getSpan();
     this.setState({ loading: true });
     this.getData(start_date, end_date).then(res => {
       this.setState({ loading: false });
@@ -141,8 +202,11 @@ export default class Sina extends React.Component<SinaProps, SinaState> {
     return (
       <div style={{ height: '100%', width: '100%' }}>
         <BarChart
+          loading={loading}
           ref={ref => (this.chartRef = ref)}
           chartOption={{ data: [], updateDuration: this.duration }}
+          height={'calc(100vh - 120px)'}
+          width="100%"
         ></BarChart>
       </div>
     );

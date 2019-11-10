@@ -25,6 +25,13 @@ class ZhihuHot(base):
   title = sqlalchemy.Column(sqlalchemy.String(66))
   rate = sqlalchemy.Column(sqlalchemy.INTEGER)
 
+class BilibiliHot(base):
+  __tablename__ = "HOT_SEARCH_BILIBILI"
+  id = sqlalchemy.Column(sqlalchemy.INTEGER, primary_key=True)
+  date_time = sqlalchemy.Column(sqlalchemy.DATETIME)
+  title = sqlalchemy.Column(sqlalchemy.String(66))
+  rate = sqlalchemy.Column(sqlalchemy.INTEGER)
+
 # 创建表结构
 base.metadata.create_all(engine)
 DBSession = sqlalchemy.orm.sessionmaker(bind = engine)
@@ -67,6 +74,22 @@ def zhihu_task():
   session.commit()
   session.close()
 
+
+"""
+  爬取bilibili热榜
+"""
+def bilibili_task():
+  session = DBSession()
+  url = "https://api.bilibili.com/x/web-interface/ranking?rid=0&day=1&type=1&arc_type=0"
+  rank_list = requests.get(url,headers=headers).json()["data"]["list"]
+  hots = [(item.title,item.pts) for item in rank_list]
+  date_time = datetime.datetime.now()
+  for item in hots:
+    hot_obj = BilibiliHot(date_time=date_time,title=item[0],rate=item[1])
+    session.add(hot_obj)
+  session.commit()
+  session.close()
+
 """
   清理数据
 """
@@ -76,14 +99,20 @@ def database_task():
   delta = datetime.timedelta(days=30)
   start = now - delta
   limit_date = start.strftime("%Y-%m-%d %H:%M:%S")
+  # 删除数据
   session.query(SinaHot).filter(SinaHot.date_time < limit_date).delete(synchronize_session=False)
   session.query(ZhihuHot).filter(ZhihuHot.date_time < limit_date).delete(synchronize_session=False)
+  # B站数据很少，不进行清理
+  # session.query(BilibiliHot).filter(BilibiliHot.date_time < limit_date).delete(synchronize_session=False)
   session.commit()
   session.close()
 
 if __name__ == '__main__':
     scheduler = BlockingScheduler()
-    scheduler.add_job(sina_task,'cron',minute="*/1")
-    scheduler.add_job(zhihu_task,"cron",minute="*/1")
-    scheduler.add_job(database_task,"cron",day="*/1")
+    scheduler.add_job(sina_task,'cron',minute="*/5")
+    scheduler.add_job(zhihu_task,"cron",minute="*/5")
+    # b站的榜单每天更新一次
+    scheduler.add_job(bilibili_task,"cron",day="*/1")
+
+    scheduler.add_job(database_task,"cron",day="*/1",hour="23")
     scheduler.start()

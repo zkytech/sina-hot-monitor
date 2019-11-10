@@ -2,7 +2,7 @@
 import json,datetime
 from django.http import HttpRequest, JsonResponse
 from django.views.decorators.http import require_http_methods
-from sina.models import SinaHot,ZhihuHot
+from data.models import SinaHot,ZhihuHot,BilibiliHot
 
 class RestResponse:
     # 表示是否请求成功
@@ -29,7 +29,7 @@ def format_dicts(objs):
 @require_http_methods(['GET'])
 def sina(request:HttpRequest):
     """
-    返回指定时间段内的sina热搜数据
+    返回指定时间段内的微博热搜数据
     :param request:
     :return:
     """
@@ -44,7 +44,7 @@ def sina(request:HttpRequest):
 @require_http_methods(['GET'])
 def zhihu(request:HttpRequest):
     """
-    返回指定时间段内的sina热搜数据
+    返回指定时间段内的知乎热搜数据
     :param request:
     :return:
     """
@@ -53,4 +53,18 @@ def zhihu(request:HttpRequest):
     start_date = float(params.get('start_date')) # 开始时间的时间戳
     end_date = float(params.get('end_date')) # 结束时间的时间戳
     response.data = format_dicts(ZhihuHot.objects.filter(date_time__range=[datetime.datetime.fromtimestamp(start_date),datetime.datetime.fromtimestamp(end_date)]).all())
+    return JsonResponse(response.format())
+
+@require_http_methods(['GET'])
+def bilibili(request:HttpRequest):
+    """
+    返回指定时间段内的sina热搜数据
+    :param request:
+    :return:
+    """
+    response = RestResponse()
+    params = request.GET
+    start_date = float(params.get('start_date')) # 开始时间的时间戳
+    end_date = float(params.get('end_date')) # 结束时间的时间戳
+    response.data = format_dicts(BilibiliHot.objects.filter(date_time__range=[datetime.datetime.fromtimestamp(start_date),datetime.datetime.fromtimestamp(end_date)]).all())
     return JsonResponse(response.format())
