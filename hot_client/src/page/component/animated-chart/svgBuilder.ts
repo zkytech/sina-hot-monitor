@@ -7,7 +7,6 @@ import {
   Vector2D
 } from './index';
 import randomcolor from 'randomcolor';
-import { number } from 'prop-types';
 import { deepAssign } from '../../../util';
 
 type CSSMargin = {
@@ -198,6 +197,17 @@ export class SVGChart {
       .create('svg')
       .attr('height', this.container.offsetHeight)
       .attr('width', this.container.offsetWidth);
+    d3.select(this.container)
+      .append('div')
+      .attr('id', 'bar-chart-tooltip')
+      .style('visibility', 'hidden')
+      .style('background', 'RGBA(0,0,0,.8)')
+      // .style('height', '10000px') // tooltip
+      .style('color', '#ffffff')
+      .style('position', 'absolute')
+      .style('border', '1px solid RGBA(0,0,0,.8)')
+      .style('border-radius', '2px');
+    // .style('z-index', 10);
     svg.append('g').attr('class', 'chart');
     svg.append('g').attr('class', 'xAxis');
     // .style('width', this.container.offsetWidth - this.labelWidth)
@@ -436,6 +446,23 @@ export class SVGChart {
    * 新增节点
    */
   private enter() {
+    this.nodes
+      .style('cursor', 'default')
+      .on('mouseover', function(d) {
+        const [x, y] = d3.mouse(that.container); //相对于container的鼠标定位
+        // 显示tooltip
+        d3.select('#bar-chart-tooltip')
+          .html(`${d.id}<br/><text style="color:#EC05BA">${d.value}</text>`)
+          .transition()
+          .duration(100)
+          .style('visibility', 'visible')
+          .style('font-size', that.lineHeight + 'px')
+          .style('left', x + 'px')
+          .style('top', y + 'px');
+      })
+      .on('mouseout', function(d) {
+        d3.select('#bar-chart-tooltip').style('visibility', 'hidden');
+      });
     const newNode = this.nodes.enter().append('g');
     newNode
       .attr('transform', `translate(0 ,${this.container.offsetHeight})`) // 从底部进入
@@ -450,6 +477,7 @@ export class SVGChart {
     // 构建bar
     newNode
       .append('rect')
+      .attr('class', 'bar-chart-bar')
       .style('fill', this.getColor) // bar颜色
       .attr('fill-opacity', 0)
       .attr('height', this.lineHeight * 0.8) // bar高度
