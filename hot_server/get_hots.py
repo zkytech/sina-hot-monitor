@@ -82,7 +82,7 @@ def bilibili_task():
   session = DBSession()
   url = "https://api.bilibili.com/x/web-interface/ranking?rid=0&day=1&type=1&arc_type=0"
   rank_list = requests.get(url,headers=headers).json()["data"]["list"]
-  hots = [(item.title,item.pts) for item in rank_list]
+  hots = [(item["title"],item["pts"]) for item in rank_list]
   date_time = datetime.datetime.now()
   for item in hots:
     hot_obj = BilibiliHot(date_time=date_time,title=item[0],rate=item[1])
@@ -112,7 +112,6 @@ if __name__ == '__main__':
     scheduler.add_job(sina_task,'cron',minute="*/5")
     scheduler.add_job(zhihu_task,"cron",minute="*/5")
     # b站的榜单每天更新一次
-    scheduler.add_job(bilibili_task,"cron",day="*/1")
-
+    scheduler.add_job(bilibili_task,"cron",day="*/1",hour="23")
     scheduler.add_job(database_task,"cron",day="*/1",hour="23")
     scheduler.start()
