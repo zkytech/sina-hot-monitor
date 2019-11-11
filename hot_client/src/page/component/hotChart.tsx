@@ -46,7 +46,16 @@ export default class HotChart extends React.Component<
   chartRef: any; // echart ref
   duration: number = 1000;
   requesting = false;
-
+  get unit(): number {
+    switch (this.props.dataSource) {
+      case 'sina':
+        return 1;
+      case 'zhihu':
+        return 10000;
+      case 'bilibili':
+        return 1;
+    }
+  }
   /** 每次获取数据的时间跨度 */
   getSpan(dataSource?: DataSource): number {
     switch (dataSource ? dataSource : this.props.dataSource) {
@@ -107,7 +116,7 @@ export default class HotChart extends React.Component<
     // 获取option
     const option: ChartOption = {
       data: currentData
-        .map(val => ({ id: val.title, value: val.rate }))
+        .map(val => ({ id: val.title, value: Number(val.rate) * this.unit }))
         .slice(0, 30),
       title: this.title,
       updateDuration: this.duration,

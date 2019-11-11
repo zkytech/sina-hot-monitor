@@ -57,7 +57,7 @@ export class SVGChart {
     info: {
       content: '',
       color: '#0984e3',
-      size: 120,
+      size: 60,
       position: {
         x: 900,
         y: 900
@@ -269,15 +269,13 @@ export class SVGChart {
       .attr('height', this.container.offsetHeight)
       .attr('width', this.container.offsetWidth);
     // 为了实现动态x轴长度，所以不使用固定的this.scaleX
+    const xWidth =
+      this.container.offsetWidth - this.chartOffsetLeft - this.chartOffsetRight;
     this.scaleX = d3
-      .scaleLinear()
+      .scalePow()
+      .exponent(0.3)
       .domain([0, d3.max(this.data, (d: ChartData) => d.value) as number])
-      .range([
-        0,
-        this.container.offsetWidth -
-          this.chartOffsetLeft -
-          this.chartOffsetRight
-      ]);
+      .range([0, xWidth]);
 
     this.nodes = this.svg
       .select('.chart')
@@ -309,10 +307,13 @@ export class SVGChart {
     // 更新title
     this.svg
       .select('text.title')
+      .transition('update')
+      .duration(this.updateDuration)
+      .ease(d3.easeLinear)
       .attr('text-anchor', 'start')
       .attr('x', this.title.position.x)
       .attr('y', this.title.position.y)
-      .style('font-size', this.title.size)
+      .style('font-size', this.title.size + 'px')
       .attr('stroke', this.title.color)
       .attr('stroke-width', 2)
       .attr('fill', this.title.color)
@@ -321,20 +322,25 @@ export class SVGChart {
     // 更新info
     this.svg
       .select('text.info')
-
+      .transition('update')
+      .duration(this.updateDuration)
+      .ease(d3.easeLinear)
       .attr('x', this.info.position.x)
       .attr('y', this.info.position.y)
-      .style('font-size', this.info.size)
+      .style('font-size', this.info.size + 'px')
       .attr('stroke', this.info.color)
       .attr('stroke-width', 3)
       .attr('fill', this.info.color)
       .text(this.info.content);
 
     // 更新坐标轴
-    const xAxis = d3.axisBottom(this.scaleX).ticks(5);
+    const xAxis = d3
+      .axisBottom(this.scaleX)
+      .ticks(5)
+      .tickFormat(d => d.toString().split('.')[0]);
     this.svg
       .select('g.xAxis')
-      .style('font-size', 0.5 * this.lineHeight)
+      .style('font-size', 0.5 * this.lineHeight + 'px')
       .transition()
       .duration(this.updateDuration)
       .ease(d3.easeLinear)
@@ -408,7 +414,7 @@ export class SVGChart {
     // 更新数值
     const updateValText = updateNode.select('.value_text');
     updateValText
-      .style('font-size', this.lineHeight * (1 - goldenRatio))
+      .style('font-size', this.lineHeight * (1 - goldenRatio) + 'px')
       .transition('update')
       .ease(d3.easeLinear)
       .duration(this.updateDuration)
@@ -428,7 +434,7 @@ export class SVGChart {
     updateLabel
       .text(d => d.id)
       .attr('y', 0.5 * this.lineHeight)
-      .style('font-size', this.lineHeight * 0.5);
+      .style('font-size', this.lineHeight * 0.5 + 'px');
 
     const updateBarLabel = updateNode.select('text.bar_label_text');
     updateBarLabel
@@ -437,8 +443,8 @@ export class SVGChart {
       .ease(d3.easeLinear)
       .attr('x', (d: ChartData) => this.scaleX(d.value) - 20)
       .attr('y', 0.5 * this.lineHeight)
-      .attr('font-size', this.lineHeight * 0.9)
-      .style('opacity', d => (this.dataMap[d.id].rank <= 5 ? 1 : 0))
+      .attr('font-size', this.lineHeight * 0.9 + 'px')
+      .style('opacity', 1)
       .text(d => d.id);
   }
 
@@ -499,7 +505,7 @@ export class SVGChart {
       .attr('dominant-baseline', 'middle') // 文本垂直对齐方式
       .attr('x', (d: ChartData) => this.scaleX(d.value) + 20)
       .attr('y', 0.5 * this.lineHeight)
-      .style('font-size', this.lineHeight * (1 - goldenRatio))
+      .style('font-size', this.lineHeight * (1 - goldenRatio) + 'px')
       .text(d => d.value);
 
     // 添加箭头
@@ -530,7 +536,7 @@ export class SVGChart {
       .attr('fill', this.getColor)
       .attr('x', -this.margin.left)
       .attr('y', 0.5 * this.lineHeight)
-      .style('font-size', this.lineHeight * 0.5)
+      .style('font-size', this.lineHeight * 0.5 + 'px')
       .text(d => d.id);
 
     // 添加位于bar上的label
@@ -539,12 +545,13 @@ export class SVGChart {
       .attr('class', 'bar_label_text')
       .attr('text-anchor', 'end')
       .attr('fill', '#ffffff')
+      .attr('opacity', 0.5)
       .attr('stroke', this.getColor)
       .attr('stroke-width', 0.5)
       .attr('x', (d: ChartData) => this.scaleX(d.value) - 20)
       .attr('y', 0.5 * this.lineHeight)
-      .attr('font-size', this.lineHeight * 0.9)
-      .text(d => (this.dataMap[d.id].rank <= 5 ? d.id : ''));
+      .attr('font-size', this.lineHeight * 0.9 + 'px')
+      .text(d => d.id);
   }
 
   /**
