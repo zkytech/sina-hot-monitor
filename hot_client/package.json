@@ -16,7 +16,7 @@
     "d3": "^5.12.0",
     "less": "^3.10.3",
     "less-loader": "^5.0.0",
-    "moment": "^2.24.0",
+    "moment": "^2.29.4",
     "randomcolor": "^0.5.4",
     "react": "^16.9.0",
     "react-app-rewired": "^2.1.4",
